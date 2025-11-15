@@ -1,6 +1,6 @@
 function Sort({onSort}){
     return(
-        <select onChange={(e)=>{
+        <select aria-label="Sort Transactions" onChange={(e)=>{
             onSort(e.target.value)
         }}>
             <option value={"description"}>Description</option>
