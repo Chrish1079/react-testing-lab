@@ -49,5 +49,38 @@ describe("Display Transactions Test", () => {
       screen.getByPlaceholderText(/category/i)
     ).toBeInTheDocument();
   });
+
+  it("shows a loading indicator while transactions are being fetched", () => {
+    global.fetch = vi.fn(() => new Promise(() => {}));
+    render(<App />);
+
+    expect(
+      screen.getByText(/loading transactions/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows an empty state message when no transactions are returned", async () => {
+    setFetchResponse([]);
+    render(<App />);
+
+    expect(
+      await screen.findByText(/no transactions available/i)
+    ).toBeInTheDocument();
+  });
+
+  it("alerts the user if the initial fetch fails", async () => {
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({}),
+      })
+    );
+    render(<App />);
+
+    expect(
+      await screen.findByText(/unable to load transactions/i)
+    ).toBeInTheDocument();
+  });
 });
 

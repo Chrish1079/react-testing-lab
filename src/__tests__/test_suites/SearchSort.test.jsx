@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../../components/App";
 
@@ -64,6 +64,40 @@ describe("Search and Sort Transactions Test", () => {
     expect(reorderedDescriptions[0]).toContain("Utilities Bill");
     expect(reorderedDescriptions[1]).toContain("Book Purchase");
     expect(reorderedDescriptions[2]).toContain("Gym Membership");
+  });
+
+  it("matches searches regardless of case or whether the value is in the description or category", async () => {
+    render(<App />);
+
+    const searchInput = await screen.findByPlaceholderText(
+      /search your recent transactions/i
+    );
+
+    await userEvent.type(searchInput, "health");
+    expect(screen.getByText("Gym Membership")).toBeInTheDocument();
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, "BILLS");
+    expect(screen.getByText("Utilities Bill")).toBeInTheDocument();
+  });
+
+  it("shows a helpful message when no search results match and restores the table when cleared", async () => {
+    render(<App />);
+
+    const searchInput = await screen.findByPlaceholderText(
+      /search your recent transactions/i
+    );
+    await userEvent.type(searchInput, "xyz123");
+
+    expect(
+      await screen.findByText(/no transactions match your search/i)
+    ).toBeInTheDocument();
+
+    await userEvent.clear(searchInput);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+    });
   });
 });
 

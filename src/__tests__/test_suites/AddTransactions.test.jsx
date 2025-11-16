@@ -104,5 +104,73 @@ describe("Add Transactions Test", () => {
       amount: "2000",
     });
   });
+
+  it("reports an error if the POST request fails and leaves the table unchanged", async () => {
+    const fetchMock = vi.fn((_, options) => {
+      if (!options) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(existingTransactions),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({}),
+      });
+    });
+    global.fetch = fetchMock;
+    render(<App />);
+
+    const dateInput = await screen.findByLabelText(/date/i);
+    const descriptionInput = screen.getByPlaceholderText(/description/i);
+    const categoryInput = screen.getByPlaceholderText(/category/i);
+    const amountInput = screen.getByPlaceholderText(/amount/i);
+
+    await userEvent.type(dateInput, "2025-03-15");
+    await userEvent.type(descriptionInput, "Car Repair");
+    await userEvent.type(categoryInput, "Auto");
+    await userEvent.type(amountInput, "450");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /add transaction/i })
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(
+      await screen.findByText(/unable to save transaction/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Car Repair")).not.toBeInTheDocument();
+  });
+
+  it("clears the form inputs after a successful submission", async () => {
+    setupFetchMock();
+    render(<App />);
+
+    const dateInput = await screen.findByLabelText(/date/i);
+    const descriptionInput = screen.getByPlaceholderText(/description/i);
+    const categoryInput = screen.getByPlaceholderText(/category/i);
+    const amountInput = screen.getByPlaceholderText(/amount/i);
+
+    await userEvent.type(dateInput, "2025-04-01");
+    await userEvent.type(descriptionInput, "Bonus");
+    await userEvent.type(categoryInput, "Income");
+    await userEvent.type(amountInput, "500");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /add transaction/i })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/description/i)).toHaveValue("");
+      expect(screen.getByPlaceholderText(/category/i)).toHaveValue("");
+      expect(screen.getByPlaceholderText(/amount/i)).toHaveValue(null);
+      expect(screen.getByLabelText(/date/i)).toHaveValue("");
+    });
+  });
 });
 
